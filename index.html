@@ -7,7 +7,16 @@
     <title>ItemsTok — аренда квартир лентой</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <p class="boot">Загрузка…</p>
+    </div>
+    <script>
+      // If the app bundle never mounts (e.g. Pages serves unbuilt sources), explain instead of a blank page.
+      setTimeout(function () {
+        var boot = document.querySelector('.boot');
+        if (boot) boot.textContent = 'Приложение не запустилось. Если это GitHub Pages — опубликуйте ветку gh-pages (см. README).';
+      }, 4000);
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

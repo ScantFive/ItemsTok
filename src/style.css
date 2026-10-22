@@ -214,6 +214,7 @@ button { font: inherit; color: inherit; }
 .status:empty { padding: 0; }
 .link { padding: 0; border: 0; background: none; color: var(--accent); cursor: pointer; }
 .sentinel { height: 1px; }
+.boot { padding: 48px 24px; text-align: center; color: var(--muted); }
 
 .empty { padding: 64px 24px; text-align: center; }
 .empty p { margin: 6px 0; }

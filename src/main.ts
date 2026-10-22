@@ -53,7 +53,7 @@ const favCount = h('span', { class: 'badge' });
 const favTab = h('button', { class: 'tab', type: 'button' }, 'Избранное ', favCount);
 const nav = h('nav', { class: 'tabbar' }, feedTab, favTab);
 
-document.querySelector('#app')!.append(header, feedView, favView, nav);
+document.querySelector('#app')!.replaceChildren(header, feedView, favView, nav);
 
 async function loadNextPage(): Promise<void> {
   if (loading || !hasMore) return;

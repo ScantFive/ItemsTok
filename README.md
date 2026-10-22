@@ -33,8 +33,10 @@ npm run build        # сборка в dist/
 
 ## GitHub Pages
 
-1. В репозитории: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Влить изменения в `main` (или запустить workflow **Deploy to GitHub Pages** вручную во вкладке Actions).
-3. Сайт будет доступен по адресу `https://<владелец>.github.io/<репозиторий>/`.
+Workflow `.github/workflows/deploy.yml` на каждый пуш (и раз в 6 часов) запускает тесты,
+выгружает снимок Циан (ошибка не ломает сборку), собирает проект и публикует `dist/` в ветку `gh-pages`.
 
-Workflow: `.github/workflows/deploy.yml` — тесты → выгрузка снимка Циан (ошибка не ломает сборку) → сборка → деплой.
+Один раз в репозитории: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
+ветка **`gh-pages`**, папка **`/ (root)`**. Сайт: `https://<владелец>.github.io/<репозиторий>/`.
+
+Публиковать саму ветку с исходниками нельзя — там несобранный TypeScript, и страница будет пустой.
