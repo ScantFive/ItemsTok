@@ -31,7 +31,11 @@ jobs:
       - name: Fetch CIAN snapshot
         run: npm run fetch:cian
         continue-on-error: true
+        env:
+          CIAN_API_URL: ${{ vars.CIAN_API_URL }}
       - run: npm run build
+        env:
+          VITE_CIAN_API: ${{ vars.CIAN_API_URL }}
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

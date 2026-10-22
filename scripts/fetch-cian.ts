@@ -6,29 +6,17 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { CITIES } from '../src/cities.ts';
-import { CIAN_SEARCH_URL, buildSearchBody } from '../src/cian/query.ts';
-import { parseSearchResponse } from '../src/cian/parse.ts';
+import { fetchCianDirect, fetchViaApi } from '../src/cian/client.ts';
 import type { Offer, Snapshot } from '../src/types.ts';
 
 const PAGES = Number(process.env.CIAN_PAGES ?? 3);
 const OUT_DIR = new URL('../public/data/', import.meta.url);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchPage(regionId: number, page: number): Promise<Offer[]> {
-  const res = await fetch(CIAN_SEARCH_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
-      Origin: 'https://www.cian.ru',
-      Referer: 'https://www.cian.ru/',
-    },
-    body: JSON.stringify(buildSearchBody(regionId, page)),
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return parseSearchResponse(await res.json());
-}
+// When the proxy worker is deployed, go through it: CIAN blocks GitHub runners directly.
+const API = process.env.CIAN_API_URL;
+const fetchPage = (regionId: number, page: number): Promise<Offer[]> =>
+  API ? fetchViaApi(API, regionId, page, 20000) : fetchCianDirect(regionId, page, 20000);
 
 await mkdir(OUT_DIR, { recursive: true });
 let total = 0;

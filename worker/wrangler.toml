@@ -1,0 +1,7 @@
+name = "itemstok-cian"
+main = "index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Sites allowed to call the proxy from a browser (comma-separated).
+ALLOWED_ORIGINS = "https://scantfive.github.io,http://localhost:5173,http://localhost:4173"

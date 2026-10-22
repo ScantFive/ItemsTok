@@ -1,3 +1,4 @@
+import { fetchViaApi } from './cian/client';
 import { CIAN_SEARCH_URL, buildSearchBody } from './cian/query';
 import { parseSearchResponse } from './cian/parse';
 import { DEMO_PAGES, demoOffers } from './demo';
@@ -8,15 +9,19 @@ export type FeedSource = 'live' | 'snapshot' | 'demo';
 const SNAPSHOT_PAGE_SIZE = 10;
 const LIVE_TIMEOUT_MS = 8000;
 
+/** Our own CIAN proxy (see worker/), set at build time. Preferred over public CORS proxies. */
+const CIAN_API = import.meta.env.VITE_CIAN_API as string | undefined;
+
 /**
- * CIAN does not send CORS headers, so a browser can reach its API only through a proxy.
- * Override with VITE_CORS_PROXY at build time; the target URL is appended URL-encoded.
+ * CIAN does not send CORS headers, so without our own proxy a browser can reach it only
+ * through a public CORS proxy. Override with VITE_CORS_PROXY; the target URL is appended URL-encoded.
  */
 const PROXIES: string[] = (import.meta.env.VITE_CORS_PROXY as string | undefined)
   ? [import.meta.env.VITE_CORS_PROXY as string]
   : ['https://corsproxy.io/?url='];
 
 async function fetchLive(city: City, page: number): Promise<Offer[]> {
+  if (CIAN_API) return fetchViaApi(CIAN_API, city.id, page, LIVE_TIMEOUT_MS);
   let lastError: unknown = new Error('no proxies configured');
   for (const proxy of PROXIES) {
     try {
