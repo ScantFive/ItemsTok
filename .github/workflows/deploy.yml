@@ -6,9 +6,6 @@ on:
   push:
     branches: [main, claude/adoring-edison-1b6dw8]
   workflow_dispatch:
-  schedule:
-    # Refresh the CIAN snapshot every 6 hours.
-    - cron: '17 */6 * * *'
 
 permissions:
   contents: write
@@ -28,11 +25,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Fetch CIAN snapshot
-        run: npm run fetch:cian
-        continue-on-error: true
-        env:
-          CIAN_API_URL: ${{ vars.CIAN_API_URL }}
+      # Offers in public/data come from the owner's computer (`npm run update-data`):
+      # CIAN answers GitHub's servers with a captcha.
       - run: npm run build
         env:
           VITE_CIAN_API: ${{ vars.CIAN_API_URL }}

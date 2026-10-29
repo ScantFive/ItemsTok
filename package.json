@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "fetch:cian": "tsx scripts/fetch-cian.ts"
+    "fetch:cian": "tsx scripts/fetch-cian.ts",
+    "update-data": "tsx scripts/update-data.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

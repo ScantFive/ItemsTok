@@ -1,5 +1,5 @@
 import './style.css';
-import { loadOffers, type FeedSource } from './api';
+import { loadOffers, type FeedPage, type FeedSource } from './api';
 import { CITIES, DEFAULT_CITY, findCity } from './cities';
 import { FavoritesStore, loadCityId, saveCityId } from './storage';
 import type { City } from './types';
@@ -11,8 +11,16 @@ type Tab = 'feed' | 'favorites';
 const SOURCE_NOTES: Record<FeedSource, string> = {
   live: 'Свежие объявления с Циан',
   snapshot: 'Объявления Циан из последней выгрузки',
-  demo: 'Циан сейчас недоступен — показаны демо-объявления',
+  demo: 'Для этого города ещё нет выгрузки с Циан — показаны демо-объявления',
 };
+
+function sourceNoteText(page: FeedPage): string {
+  if (page.source !== 'snapshot' || !page.updatedAt) return SOURCE_NOTES[page.source];
+  const date = new Date(page.updatedAt);
+  if (Number.isNaN(date.getTime())) return SOURCE_NOTES.snapshot;
+  const when = date.toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  return `Объявления Циан, выгрузка от ${when}`;
+}
 
 const favorites = new FavoritesStore();
 let city: City = findCity(loadCityId() ?? -1) ?? DEFAULT_CITY;
@@ -66,7 +74,7 @@ async function loadNextPage(): Promise<void> {
     page += 1;
     source = result.source;
     hasMore = result.hasMore;
-    sourceNote.textContent = SOURCE_NOTES[result.source];
+    sourceNote.textContent = sourceNoteText(result);
     sourceNote.dataset.source = result.source;
     sourceNote.hidden = false;
     for (const offer of result.offers) {
