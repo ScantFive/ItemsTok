@@ -23,6 +23,37 @@ jobs:
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
+      # A fresh Cloudflare account has no workers.dev subdomain, and wrangler can't create
+      # one non-interactively. Register it via the API (free, no own domain needed).
+      - name: Ensure workers.dev subdomain
+        id: subdomain
+        if: steps.creds.outputs.ok == 'true'
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          api="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/subdomain"
+          auth="Authorization: Bearer $CF_TOKEN"
+          sub=$(curl -sS -H "$auth" "$api" | jq -r '.result.subdomain // empty')
+          if [ -z "$sub" ]; then
+            base=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-\n' '-')
+            for candidate in "$base" "$base-itemstok" "$base-itemstok-$RANDOM"; do
+              resp=$(curl -sS -X PUT -H "$auth" -H 'Content-Type: application/json' \
+                --data "{\"subdomain\":\"$candidate\"}" "$api")
+              if [ "$(echo "$resp" | jq -r '.success')" = "true" ]; then
+                sub="$candidate"
+                echo "Registered $sub.workers.dev"
+                break
+              fi
+              echo "Could not register $candidate: $(echo "$resp" | jq -c '.errors')"
+            done
+          fi
+          if [ -z "$sub" ]; then
+            echo "::error::Could not get a workers.dev subdomain. Register one at https://dash.cloudflare.com → Workers & Pages."
+            exit 1
+          fi
+          echo "url=https://itemstok-cian.$sub.workers.dev" >> "$GITHUB_OUTPUT"
       - uses: cloudflare/wrangler-action@v3
         if: steps.creds.outputs.ok == 'true'
         with:
@@ -30,3 +61,24 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: worker
           wranglerVersion: '4'
+      - name: Check the proxy
+        if: steps.creds.outputs.ok == 'true'
+        env:
+          URL: ${{ steps.subdomain.outputs.url }}
+        run: |
+          # A new workers.dev subdomain can take a minute to start resolving.
+          for i in 1 2 3 4 5 6; do
+            body=$(curl -sS --max-time 30 "$URL/search?region=1" || true)
+            [ -n "$body" ] && break
+            sleep 15
+          done
+          echo "Proxy answer: $(echo "$body" | head -c 400)"
+          {
+            echo "### Прокси Циан: \`$URL\`"
+            if echo "$body" | jq -e '.offers | length > 0' >/dev/null 2>&1; then
+              echo "✅ Работает: получено $(echo "$body" | jq '.offers | length') объявлений."
+              echo "Добавьте переменную репозитория \`CIAN_API_URL\` = \`$URL\` и перезапустите «Deploy to GitHub Pages»."
+            else
+              echo "⚠️ Прокси ответил без объявлений: \`$(echo "$body" | head -c 300)\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,6 +1,7 @@
 name = "itemstok-cian"
 main = "index.ts"
 compatibility_date = "2026-10-01"
+workers_dev = true
 
 [vars]
 # Sites allowed to call the proxy from a browser (comma-separated).
