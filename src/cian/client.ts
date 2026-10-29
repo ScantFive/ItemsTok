@@ -2,7 +2,7 @@ import type { Offer } from '../types';
 import { parseSearchResponse } from './parse';
 import { CIAN_SEARCH_URL, buildSearchBody } from './query';
 
-const BROWSER_HEADERS = {
+export const BROWSER_HEADERS = {
   'Content-Type': 'application/json',
   Accept: 'application/json, text/plain, */*',
   'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',

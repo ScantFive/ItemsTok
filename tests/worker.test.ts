@@ -39,3 +39,19 @@ describe('CIAN proxy worker', () => {
     expect((await res.json()).error).toBe('cian_blocked');
   });
 });
+
+describe('/debug', () => {
+  it('reports what CIAN answers for each probe', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('<html><title>Captcha</title><body>Подтвердите, что вы не робот smartcaptcha</body></html>', {
+        headers: { 'content-type': 'text/html' },
+      })),
+    );
+    const res = await handle(req('/debug'), env);
+    const body = await res.json();
+    expect(body.probes).toHaveLength(3);
+    expect(body.probes[0]).toMatchObject({ status: 200, title: 'Captcha', markers: { captcha: true, smartCaptcha: true } });
+    expect(body.probes[0].text).toContain('не робот');
+  });
+});

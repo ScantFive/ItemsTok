@@ -74,6 +74,8 @@ jobs:
             sleep 15
           done
           echo "Proxy answer: $(echo "$body" | head -c 400)"
+          echo "Diagnostics (/debug):"
+          curl -sS --max-time 60 "$URL/debug" | jq . || true
           {
             echo "### Прокси Циан: \`$URL\`"
             if echo "$body" | jq -e '.offers | length > 0' >/dev/null 2>&1; then

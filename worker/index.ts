@@ -7,6 +7,7 @@
  * and it only grants CORS to origins listed in ALLOWED_ORIGINS.
  */
 import { CianBlockedError, fetchCianDirect } from '../src/cian/client';
+import { diagnose } from './debug';
 
 export interface Env {
   /** Comma-separated list of allowed origins, e.g. "https://user.github.io,http://localhost:5173". */
@@ -55,6 +56,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
   if (request.method !== 'GET') return json({ error: 'method_not_allowed' }, 405, cors);
   if (url.pathname === '/') return json({ ok: true, usage: '/search?region=1&page=1' }, 200, cors);
+  if (url.pathname === '/debug') return json(await diagnose(request), 200, cors);
   if (url.pathname !== '/search') return json({ error: 'not_found' }, 404, cors);
 
   // Cache successful searches at the edge so a busy feed doesn't hammer CIAN.
