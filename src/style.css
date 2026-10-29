@@ -253,3 +253,20 @@ button { font: inherit; color: inherit; }
   background: var(--like);
 }
 .badge:empty { display: none; }
+
+.guide { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.5; }
+.guide h1 { font-size: 24px; }
+.guide li { margin-bottom: 14px; }
+.guide textarea { width: 100%; font: 12px ui-monospace, monospace; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
+.guide button { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }
+.guide a { color: var(--accent); }
+.bookmarklet {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 10px;
+  color: #fff !important;
+  font-weight: 700;
+  text-decoration: none;
+  background: linear-gradient(90deg, #f58529, #dd2a7b, #8134af);
+  cursor: grab;
+}

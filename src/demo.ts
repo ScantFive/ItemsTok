@@ -25,7 +25,7 @@ const PAGE_SIZE = 10;
 export function demoOffers(city: City, page: number): Offer[] {
   const rand = rng(city.id * 1000 + page);
   const pick = <T,>(arr: T[]) => arr[Math.floor(rand() * arr.length)];
-  const base = city.id === 1 ? 70000 : city.id === 2 ? 50000 : 30000;
+  const base = city.id === 1 ? 70000 : 50000;
 
   return Array.from({ length: PAGE_SIZE }, (_, i) => {
     const id = `demo-${city.id}-${page}-${i}`;

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ItemsTok — экспорт с Циан</title>
+  </head>
+  <body>
+    <main class="guide">
+      <h1>Экспорт объявлений с Циан</h1>
+      <ol>
+        <li>
+          Перетащите эту кнопку на панель закладок браузера:
+          <p><a id="bookmarklet" class="bookmarklet" href="#">ItemsTok: сохранить</a></p>
+          <p class="muted">
+            Не видно панели закладок — нажмите Ctrl+Shift+B (на Mac — ⌘+Shift+B).
+            Можно и вручную: создайте закладку и вставьте в поле адреса код из поля ниже.
+          </p>
+          <textarea id="code" readonly rows="3"></textarea>
+          <button id="copy" type="button">Скопировать код</button>
+        </li>
+        <li>
+          Откройте поиск аренды на Циан:
+          <a href="https://www.cian.ru/cat.php?deal_type=rent&engine_version=2&offer_type=flat&region=1&type=4" target="_blank" rel="noopener">Москва</a>,
+          <a href="https://www.cian.ru/cat.php?deal_type=rent&engine_version=2&offer_type=flat&region=2&type=4" target="_blank" rel="noopener">Петербург</a>.
+          Если Циан покажет капчу — пройдите её как обычно.
+        </li>
+        <li>Нажмите закладку «ItemsTok: сохранить» — скачается файл <code>itemstok-….json</code>.</li>
+        <li>Хотите больше объявлений — откройте страницы 2, 3… внизу списка и нажмите закладку на каждой.</li>
+        <li>В папке проекта выполните <code>npm run import-data</code> — объявления попадут на сайт.</li>
+      </ol>
+      <p><a href="./">← К ленте</a></p>
+    </main>
+    <script type="module" src="/src/export-page.ts"></script>
+  </body>
+</html>
