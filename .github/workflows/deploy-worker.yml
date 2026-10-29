@@ -4,7 +4,7 @@ name: Deploy CIAN proxy (Cloudflare Worker)
 on:
   push:
     branches: [main, claude/adoring-edison-1b6dw8]
-    paths: ['worker/**', 'src/cian/**', 'src/types.ts']
+    paths: ['worker/**', 'src/cian/**', 'src/types.ts', '.github/workflows/deploy-worker.yml']
   workflow_dispatch:
 
 jobs:
@@ -66,10 +66,11 @@ jobs:
         env:
           URL: ${{ steps.subdomain.outputs.url }}
         run: |
-          # A new workers.dev subdomain can take a minute to start resolving.
-          for i in 1 2 3 4 5 6; do
+          # A freshly deployed workers.dev route answers "error code: 1042" for a few minutes.
+          for i in $(seq 1 20); do
             body=$(curl -sS --max-time 30 "$URL/search?region=1" || true)
-            [ -n "$body" ] && break
+            echo "$body" | jq -e . >/dev/null 2>&1 && break
+            echo "Attempt $i: $(echo "$body" | head -c 100)"
             sleep 15
           done
           echo "Proxy answer: $(echo "$body" | head -c 400)"
