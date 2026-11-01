@@ -11,7 +11,10 @@ const rawOffer = {
   building: { floorsCount: 17 },
   geo: {
     userInput: 'Москва, ул. Профсоюзная, 12',
-    undergrounds: [{ name: 'Академическая', time: 6, transportType: 'walk' }],
+    undergrounds: [
+      { name: 'Академическая', time: 6, transportType: 'walk' },
+      { name: 'Профсоюзная', time: 12, transportType: 'transport' },
+    ],
   },
   photos: [{ fullUrl: 'https://cdn.cian.site/1.jpg' }, { thumbnailUrl: 'https://cdn.cian.site/2-t.jpg' }, {}],
   description: 'Хорошая квартира',
@@ -31,6 +34,10 @@ describe('parseOffer', () => {
       floorsTotal: 17,
       address: 'Москва, ул. Профсоюзная, 12',
       metro: { name: 'Академическая', minutes: 6, onFoot: true },
+      metros: [
+        { name: 'Академическая', minutes: 6, onFoot: true },
+        { name: 'Профсоюзная', minutes: 12, onFoot: false },
+      ],
       description: 'Хорошая квартира',
       publishedAt: 1700000000000,
       source: 'cian',

@@ -18,15 +18,11 @@ function parsePhotos(raw: unknown): string[] {
     .filter(Boolean);
 }
 
-function parseMetro(geo: Json): Metro | null {
+function parseMetros(geo: Json): Metro[] {
   const list = Array.isArray(geo.undergrounds) ? geo.undergrounds.filter(isObj) : [];
-  if (list.length === 0) return null;
-  const m = list[0];
-  return {
-    name: str(m.name),
-    minutes: num(m.time),
-    onFoot: str(m.transportType) !== 'transport',
-  };
+  return list
+    .map((m) => ({ name: str(m.name), minutes: num(m.time), onFoot: str(m.transportType) !== 'transport' }))
+    .filter((m) => m.name !== '');
 }
 
 function parseAddress(geo: Json): string {
@@ -52,6 +48,7 @@ export function parseOffer(raw: unknown): Offer | null {
   const building = isObj(raw.building) ? raw.building : {};
   const isStudio = raw.flatType === 'studio' || raw.isApartments === 'studio';
   const published = num(raw.addedTimestamp);
+  const metros = parseMetros(geo);
 
   return {
     id: String(id),
@@ -63,7 +60,8 @@ export function parseOffer(raw: unknown): Offer | null {
     floor: num(raw.floorNumber),
     floorsTotal: num(building.floorsCount),
     address: parseAddress(geo),
-    metro: parseMetro(geo),
+    metro: metros[0] ?? null,
+    metros,
     description: str(raw.description),
     publishedAt: published === null ? null : published * 1000,
     source: 'cian',

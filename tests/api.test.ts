@@ -28,6 +28,19 @@ describe('loadOffers', () => {
     expect(fetchMock.mock.calls.every(([url]) => url.includes('data/'))).toBe(true);
   });
 
+  it('applies filters before paginating the snapshot', async () => {
+    const offers = Array.from({ length: 30 }, (_, i) => ({ id: `s${i}`, price: i < 12 ? 40000 : 90000, metro: null }));
+    vi.stubGlobal('fetch', vi.fn(async () => json({ regionId: 1, updatedAt: '', offers })));
+    const city = { id: 1001, name: 'Тест' };
+    const filters = { priceMin: null, priceMax: 50000, stations: [], maxWalk: null };
+    const first = await loadOffers(city, 1, null, filters);
+    expect(first.offers).toHaveLength(10);
+    expect(first.hasMore).toBe(true);
+    const second = await loadOffers(city, 2, 'snapshot', filters);
+    expect(second.offers.map((o) => o.id)).toEqual(['s10', 's11']);
+    expect(second.hasMore).toBe(false);
+  });
+
   it('shows demo data when there is no snapshot and no live source', async () => {
     const fetchMock = vi.fn(async () => json({}, 404));
     vi.stubGlobal('fetch', fetchMock);

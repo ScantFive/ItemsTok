@@ -18,7 +18,10 @@ export interface Offer {
   floor: number | null;
   floorsTotal: number | null;
   address: string;
+  /** Nearest station. */
   metro: Metro | null;
+  /** All stations CIAN lists for the offer, nearest first (absent in older exports). */
+  metros?: Metro[];
   description: string;
   publishedAt: number | null;
   source: OfferSource;

@@ -2,6 +2,7 @@ import { fetchViaApi } from './cian/client';
 import { CIAN_SEARCH_URL, buildSearchBody } from './cian/query';
 import { parseSearchResponse } from './cian/parse';
 import { DEMO_PAGES, demoOffers } from './demo';
+import { EMPTY_FILTERS, matches, type Filters } from './filters';
 import type { City, Offer, OffersPage, Snapshot } from './types';
 
 export type FeedSource = 'live' | 'snapshot' | 'demo';
@@ -50,36 +51,68 @@ function fetchSnapshot(city: City): Promise<Snapshot> {
 
 export type FeedPage = OffersPage & { source: FeedSource; updatedAt?: string };
 
+/** Every offer the feed can show for a city, when it is known up front (snapshot or demo). */
+export interface Catalog {
+  offers: Offer[];
+  source: 'snapshot' | 'demo';
+  updatedAt?: string;
+}
+
+/** Snapshot if one exists, otherwise null (callers then try live or demo). */
+async function snapshotCatalog(city: City): Promise<Catalog | null> {
+  try {
+    const snapshot = await fetchSnapshot(city);
+    const offers = snapshot.offers ?? [];
+    return offers.length > 0 ? { offers, source: 'snapshot', updatedAt: snapshot.updatedAt } : null;
+  } catch {
+    return null;
+  }
+}
+
+function demoCatalog(city: City): Catalog {
+  const offers = Array.from({ length: DEMO_PAGES }, (_, i) => demoOffers(city, i + 1)).flat();
+  return { offers, source: 'demo' };
+}
+
+/** What the filter panel works with: the snapshot, or demo data when there is no snapshot and no live source. */
+export async function loadCatalog(city: City): Promise<Catalog | null> {
+  return (await snapshotCatalog(city)) ?? (liveConfigured() ? null : demoCatalog(city));
+}
+
+function pageOf(catalog: Catalog, page: number, filters: Filters): FeedPage {
+  const all = catalog.offers.filter((o) => matches(o, filters));
+  const start = (page - 1) * SNAPSHOT_PAGE_SIZE;
+  return {
+    offers: all.slice(start, start + SNAPSHOT_PAGE_SIZE),
+    hasMore: start + SNAPSHOT_PAGE_SIZE < all.length,
+    source: catalog.source,
+    updatedAt: catalog.updatedAt,
+  };
+}
+
 /**
  * Loads one feed page. The first page decides the source (snapshot exported from the
- * owner's computer → live CIAN, if configured → demo data); later pages stick to the
- * same source so the feed stays consistent.
+ * owner's browser → live CIAN, if configured → demo data); later pages stick to the
+ * same source so the feed stays consistent. Filters are applied before paginating
+ * where the whole list is known, and per page for live data.
  */
-export async function loadOffers(city: City, page: number, source: FeedSource | null): Promise<FeedPage> {
+export async function loadOffers(
+  city: City,
+  page: number,
+  source: FeedSource | null,
+  filters: Filters = EMPTY_FILTERS,
+): Promise<FeedPage> {
   if (source === null || source === 'snapshot') {
-    try {
-      const snapshot = await fetchSnapshot(city);
-      const all = snapshot.offers ?? [];
-      if (all.length > 0) {
-        const start = (page - 1) * SNAPSHOT_PAGE_SIZE;
-        const offers = all.slice(start, start + SNAPSHOT_PAGE_SIZE);
-        return {
-          offers,
-          hasMore: start + SNAPSHOT_PAGE_SIZE < all.length,
-          source: 'snapshot',
-          updatedAt: snapshot.updatedAt,
-        };
-      }
-    } catch (e) {
-      if (source === 'snapshot') throw e;
-    }
+    const catalog = await snapshotCatalog(city);
+    if (catalog) return pageOf(catalog, page, filters);
+    if (source === 'snapshot') throw new Error('snapshot unavailable');
   }
 
   if ((source === null && liveConfigured()) || source === 'live') {
     try {
       const offers = await fetchLive(city, page);
       if (offers.length > 0 || source === 'live') {
-        return { offers, hasMore: offers.length > 0, source: 'live' };
+        return { offers: offers.filter((o) => matches(o, filters)), hasMore: offers.length > 0, source: 'live' };
       }
     } catch (e) {
       if (source === 'live') throw e;
@@ -87,5 +120,5 @@ export async function loadOffers(city: City, page: number, source: FeedSource | 
     }
   }
 
-  return { offers: demoOffers(city, page), hasMore: page < DEMO_PAGES, source: 'demo' };
+  return pageOf(demoCatalog(city), page, filters);
 }

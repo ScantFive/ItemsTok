@@ -1,10 +1,13 @@
 import './style.css';
-import { loadOffers, type FeedPage, type FeedSource } from './api';
+import { loadCatalog, loadOffers, type FeedPage, type FeedSource } from './api';
 import { CITIES, DEFAULT_CITY, findCity } from './cities';
+import { EMPTY_FILTERS, activeCount, describe, loadFilters, saveFilters, type Filters } from './filters';
 import { FavoritesStore, loadCityId, saveCityId } from './storage';
-import type { City } from './types';
-import { h } from './ui/dom';
+import type { City, Offer } from './types';
+import { fromHtml, h } from './ui/dom';
 import { renderCard, syncLikeButtons } from './ui/card';
+import { openFiltersPanel } from './ui/filters-panel';
+import { FILTER } from './ui/icons';
 
 type Tab = 'feed' | 'favorites';
 
@@ -25,6 +28,7 @@ function sourceNoteText(page: FeedPage): string {
 const favorites = new FavoritesStore();
 let city: City = findCity(loadCityId() ?? -1) ?? DEFAULT_CITY;
 let tab: Tab = 'feed';
+let filters: Filters = loadFilters(city.id);
 
 // Feed state; `generation` discards responses that arrive after the city changed.
 let generation = 0;
@@ -33,19 +37,34 @@ let source: FeedSource | null = null;
 let hasMore = true;
 let loading = false;
 const seen = new Set<string>();
+const shown: Offer[] = [];
 
 const citySelect = h(
   'select',
   { class: 'city', 'aria-label': 'Город' },
   ...CITIES.map((c) => h('option', { value: c.id, selected: c.id === city.id }, c.name)),
 );
-const header = h('header', { class: 'topbar' }, h('h1', { class: 'logo' }, 'ItemsTok'), citySelect);
+const filterBadge = h('span', { class: 'badge' });
+const filterBtn = h('button', { class: 'filter-btn', type: 'button', 'aria-label': 'Фильтры' }, fromHtml(FILTER), 'Фильтры', filterBadge);
+const header = h(
+  'header',
+  { class: 'topbar' },
+  h('h1', { class: 'logo' }, 'ItemsTok'),
+  h('div', { class: 'topbar__actions' }, filterBtn, citySelect),
+);
 
 const sourceNote = h('div', { class: 'note', hidden: true });
+const summaryBtn = h('button', { class: 'summary', type: 'button', onclick: () => void openFilters() });
+const filterSummary = h(
+  'div',
+  { class: 'filter-summary', hidden: true },
+  summaryBtn,
+  h('button', { class: 'link', type: 'button', onclick: () => applyFilters({ ...EMPTY_FILTERS, stations: [] }) }, 'Сбросить'),
+);
 const feedList = h('div', { class: 'list' });
 const status = h('div', { class: 'status' });
 const sentinel = h('div', { class: 'sentinel' });
-const feedView = h('main', { class: 'view' }, sourceNote, feedList, status, sentinel);
+const feedView = h('main', { class: 'view' }, sourceNote, filterSummary, feedList, status, sentinel);
 
 const favList = h('div', { class: 'list' });
 const favEmpty = h(
@@ -69,7 +88,7 @@ async function loadNextPage(): Promise<void> {
   const gen = generation;
   status.textContent = 'Загружаем квартиры…';
   try {
-    const result = await loadOffers(city, page + 1, source);
+    const result = await loadOffers(city, page + 1, source, filters);
     if (gen !== generation) return;
     page += 1;
     source = result.source;
@@ -80,9 +99,17 @@ async function loadNextPage(): Promise<void> {
     for (const offer of result.offers) {
       if (seen.has(offer.id)) continue;
       seen.add(offer.id);
+      shown.push(offer);
       feedList.append(renderCard(offer, favorites));
     }
-    status.textContent = hasMore ? '' : feedList.childElementCount ? 'Это всё на сегодня' : 'Объявлений не найдено';
+    if (hasMore) status.textContent = '';
+    else if (feedList.childElementCount) status.textContent = 'Это всё на сегодня';
+    else if (activeCount(filters)) {
+      status.replaceChildren(
+        'По фильтрам ничего не нашлось. ',
+        h('button', { class: 'link', type: 'button', onclick: () => void openFilters() }, 'Изменить фильтры'),
+      );
+    } else status.textContent = 'Объявлений не найдено';
   } catch (e) {
     if (gen !== generation) return;
     console.error(e);
@@ -105,10 +132,32 @@ function resetFeed(): void {
   hasMore = true;
   loading = false;
   seen.clear();
+  shown.length = 0;
   feedList.replaceChildren();
+  renderFilterState();
   sourceNote.hidden = true;
   window.scrollTo({ top: 0 });
   void loadNextPage();
+}
+
+function renderFilterState(): void {
+  const n = activeCount(filters);
+  filterBadge.textContent = n ? String(n) : '';
+  filterSummary.hidden = n === 0;
+  summaryBtn.textContent = describe(filters);
+}
+
+function applyFilters(next: Filters): void {
+  filters = next;
+  saveFilters(city.id, filters);
+  resetFeed();
+}
+
+async function openFilters(): Promise<void> {
+  // The panel needs the full list to offer stations and live counts; with a live-only
+  // source we only know what has been shown so far.
+  const catalog = await loadCatalog(city);
+  openFiltersPanel({ cityName: city.name, offers: catalog?.offers ?? shown, current: filters, onApply: applyFilters });
 }
 
 function updateFavCount(): void {
@@ -136,8 +185,13 @@ function setTab(next: Tab): void {
 citySelect.addEventListener('change', () => {
   city = findCity(Number(citySelect.value)) ?? DEFAULT_CITY;
   saveCityId(city.id);
+  filters = loadFilters(city.id);
   setTab('feed');
   resetFeed();
+});
+filterBtn.addEventListener('click', () => {
+  setTab('feed');
+  void openFilters();
 });
 feedTab.addEventListener('click', () => setTab('feed'));
 favTab.addEventListener('click', () => setTab('favorites'));
